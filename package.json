@@ -1,0 +1,35 @@
+{
+  "name": "get_bilibili",
+  "version": "1.0.0",
+  "description": "download videos in bilibili",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WoHal/get_bilibili.git"
+  },
+  "keywords": [
+    "you-get",
+    "bilibili",
+    "get-bilibili"
+  ],
+  "files": [
+    "index.js",
+    "bin"
+  ],
+  "bin": {
+    "get_bilibili": "./bin/get_bilibili"
+  },
+  "engines": {
+    "node": ">=10.16.3"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/WoHal/get_bilibili/issues"
+  },
+  "homepage": "https://github.com/WoHal/get_bilibili#readme",
+  "dependencies": {
+    "commander": "^4.1.1",
+    "mkdirp": "^1.0.3"
+  }
+}
