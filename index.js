@@ -1,8 +1,8 @@
-const spawn = require('child_process').spawn;
+const { spawn, exec } = require('child_process');
+const fs = require('fs');
 const mkdirp = require('mkdirp');
 const commander = require('commander');
 const program = new commander.Command();
-const fs = require('fs');
 
 program.version('0.0.1');
 
@@ -11,11 +11,12 @@ function myParseInt(value) {
 }
 
 program
-    .requiredOption('-l, --url <url>', 'set bilibili url')
-    .option('-d, --dir <dir>', 'set output directory', process.cwd())
-    .option('-s, --start <num>', 'set start of eposide', myParseInt, 1)
-    .option('-e, --end <num>', 'set end of eposide', myParseInt, 1)
-    .option('-S, --select <items>', 'select some eposides', value => value.split(/,|\s+/), []);
+    .requiredOption('-u, --url <url>', 'set bilibili url')
+    .option('-d, --dir <dir>', 'Set output directory', process.cwd())
+    .option('-s, --start <num>', 'Set start of eposide', myParseInt, 1)
+    .option('-e, --end <num>', 'Set end of eposide', myParseInt, 1)
+    .option('-o, --output <filename>', 'Set output filename')
+    .option('-S, --select <items>', 'Select some eposides', value => value.split(/,|\s+/), []);
 
 program.parse(process.argv);
 
@@ -23,21 +24,50 @@ if (program.end < program.start) {
     program.end = program.start;
 }
 
-function download(url, dir) {
-    return new Promise((resolve, reject) => {
-        const you_get = spawn('you-get', ['--debug', '-o', dir, url]);
+function download(url, dir, filename) {
+    return new Promise((resolve) => {
+        const params = (filename ? ['-O', filename] : []).concat(['--no-caption', '--debug', '-o', dir, url]);
+        const you_get = spawn('you-get', params);
         you_get.stdout.setEncoding('utf8');
         you_get.stdout.on('data', console.log);
         you_get.stderr.setEncoding('utf8');
-        you_get.stderr.on('data', console.error); 
+        you_get.stderr.on('data', console.error);
         you_get.on('close', resolve);
     });
 }
 
+function getEposideInfo(url) {
+    return new Promise((resolve, reject) => {
+        exec(`you-get ${url} --json`, (err, stdout, stderr) => {
+            if (err) {
+                reject(err);
+            }
+            try {
+                const info = JSON.parse(stdout);
+                resolve(info);
+            } catch(e) {
+                reject(e);
+            }
+        });
+    });
+}
 
-async function run({start, end, url, dir}) {
-    let count = start;
-    const MAX_COUNT = end;
+function getDownloadUrl(url, eposide = 1) {
+    if (!url) {
+        throw Error('Url cannot be empty');
+    }
+    return `${url}?p=${eposide}`;
+}
+
+async function run({
+    start,
+    end,
+    url,
+    dir,
+    select,
+    output
+}) {
+    let eposides = select.length > 0 ? select : Array(end - start + 1).fill(start).map((item, index) => item + index);
     try {
         if (dir !== process.cwd()) {
             await mkdirp(dir);
@@ -46,27 +76,27 @@ async function run({start, end, url, dir}) {
         throw Error(e);
     }
 
-    while (count <= MAX_COUNT) {
-        const download_url = `${url}?p=${count}`;
+    for (let eposide of eposides) {
         try {
-            await download(download_url, dir);
+            let filename;
+            if (output) {
+                filename = `P${eposide}. ${output}`;
+            }
+            const downloadUrl = getDownloadUrl(url, eposide);
+            if (!filename) {
+                const eposideInfo = await getEposideInfo(downloadUrl);
+                filename = eposideInfo.title;
+            }
+
+            await download(downloadUrl, dir, filename);
         } catch (e) {
-            fs.writeFileSync(dir + 'err.txt', download_url + '\n', {
-                flag: 'a'
-            });
             throw Error(e);
         }
-        count = count + 1;
     }
 }
 
 try {
-    run({
-        start: program.start,
-        end: program.end,
-        url: program.url,
-        dir: program.dir
-    });
+    run(program);
 } catch(e) {
     throw Error(e);
 }
