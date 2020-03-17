@@ -16,6 +16,7 @@ program
     .option('-s, --start <num>', 'Set start of eposide', myParseInt, 1)
     .option('-e, --end <num>', 'Set end of eposide', myParseInt, 1)
     .option('-o, --output <filename>', 'Set output filename')
+    .option('-C, --nocaption', 'Don\'t download subtitle')
     .option('-S, --select <items>', 'Select some eposides', value => value.split(/,|\s+/), []);
 
 program.parse(process.argv);
@@ -26,7 +27,13 @@ if (program.end < program.start) {
 
 function download(url, dir, filename) {
     return new Promise((resolve) => {
-        const params = (filename ? ['-O', filename] : []).concat(['--no-caption', '--debug', '-o', dir, url]);
+        const params = [];
+        filename && params.push.apply(params, ['-O', filename]);
+        program.nocaption && params.push('--no-caption');
+        params.push.apply(params, ['--debug', '-o', dir, url]);
+
+        console.log('Downloading you-get ' + params.join(' '));
+
         const you_get = spawn('you-get', params);
         you_get.stdout.setEncoding('utf8');
         you_get.stdout.on('data', console.log);
