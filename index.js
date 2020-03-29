@@ -83,6 +83,8 @@ async function run({
         throw Error(e);
     }
 
+    const errEposides = [];
+
     for (let eposide of eposides) {
         try {
             let filename;
@@ -97,8 +99,17 @@ async function run({
 
             await download(downloadUrl, dir, filename);
         } catch (e) {
-            throw Error(e);
+	    console.error(e);
+	    errEposides.push(eposide);
         }
+    }
+    
+    if (errEposides.length > 0) {
+	console.log('Error eposides ' + errEposides.join());
+	setTimeout(() => {
+	    console.log('Downloading error eposides');
+	    run({ url, dir, select: errEposides });
+	}, 3600 * 1000);
     }
 }
 
