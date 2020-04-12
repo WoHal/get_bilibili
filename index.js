@@ -109,7 +109,7 @@ async function run({
 	setTimeout(() => {
 	    console.log('Downloading error eposides');
 	    run({ url, dir, select: errEposides });
-	}, 3600 * 1000);
+	}, 6 * 3600 * 1000);
     }
 }
 
